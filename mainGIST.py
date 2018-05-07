@@ -4,24 +4,27 @@ import numpy as np
 class DMT(object):
     'Klasa operująca na danych pomiarowych DMT'
 
-    def __init__(self, plik):
+    def __init__(self, plik, dA, dB, wlvl):
         df = pd.read_csv(plik, delimiter=',', decimal=',')
         self.df = df.fillna(0.0)
+        self.dA = dA
+        self.dB = dB
+        self.wlvl = wlvl
         print('DataFrame "{}" został zaimportowany do klasy DMT\n'.format(plik))
         print(self.df.columns, '\n')
 
     def pokaz(self, wiersze=10):
         print(self.df.head(wiersze), '\n')
 
-    def interpretacja(self, dA, dB, wlvl):
+    def interpretacja(self):
 
-        self.df['p0']=1.05*(self.df['A ']+dA)-0.05*(self.df['B']-dB)
-        self.df['p1']=self.df['B']-dB
+        self.df['p0']=1.05*(self.df['A ']+self.dA)-0.05*(self.df['B']-self.dB)
+        self.df['p1']=self.df['B']-self.dB
 
         self.df['ED'] = 34.7*(self.df['p1']-self.df['p0'])
 
-        wlvl_mask = self.df['Depth (m)'] >= wlvl
-        self.df['u0'] = (self.df['Depth (m)'] - wlvl) * 0.098
+        wlvl_mask = self.df['Depth (m)'] >= self.wlvl
+        self.df['u0'] = (self.df['Depth (m)'] - self.wlvl) * 0.098
         self.df['u0'] = self.df['u0'][wlvl_mask]
         self.df = self.df.fillna(0.0)
 
@@ -160,11 +163,8 @@ class DMT(object):
         print(self.df[col].sum(axis = 0))
 
 
-Niep = DMT('NiepDMT.csv')
+Niep = DMT('NiepDMT.csv', 0.1, 0.45, 0.5)
 Niep.pokaz()
-Niep.interpretacja(0.1, 0.45, 0.5)
+Niep.interpretacja()
 
 Niep.pokaz()
-
-
-
