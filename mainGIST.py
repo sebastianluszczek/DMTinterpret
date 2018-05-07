@@ -6,8 +6,8 @@ class DMT(object):
 
     def __init__(self, plik):
         df = pd.read_csv(plik, delimiter=',', decimal=',')
-        self.df = df
-        print('DataFrame "{}" został zaimportowany do klasy\n'.format(plik))
+        self.df = df.fillna(0.0)
+        print('DataFrame "{}" został zaimportowany do klasy DMT\n'.format(plik))
         print(self.df.columns, '\n')
 
     def pokaz(self, wiersze=10):
@@ -74,8 +74,97 @@ class DMT(object):
 
         self.df['KD'] = (self.df['p0'] - self.df['u0']) / self.df['sigma_v0']
 
+        def description(ID, ED):
+            if ED >= 12:
+                if ID <= 0.33:
+                    return "CLAY"
+                elif ID <= 0.66:
+                    return "SILTY CLAY"
+                elif ID <= 0.8:
+                    return "CLAYEY SILT"
+                elif ID <= 1.2:
+                    return "SILT"
+                elif ID <= 1.8:
+                    return "SANDY SILT"
+                elif ID <= 3.3:
+                    return "SILTY SAND"
+                else:
+                    return "SAND"
+            else:
+                return "MUD"
+
+        self.df['description'] = self.df.apply(lambda x: description(x['ID'], x['ED']), axis = 1)
+
+        def coeff_earth_preasure(ID, KD):
+            if ID < 1.2:
+                return ((KD / 1.5) ** 0.47) - 0.6
+            else:
+                return 0
+        self.df['K0'] = self.df.apply(lambda x: coeff_earth_preasure(x['ID'], x['ED']), axis = 1)
+
+        def overconsolidation_ratio(ID, KD):
+            if ID < 1.2:
+                return (0.5 * KD) ** 1.56
+            else:
+                return 0
+
+        self.df['OCR'] = self.df.apply(lambda x: overconsolidation_ratio(x['ID'], x['KD']), axis = 1)
+
+        def undrained_shear_strenght(ID, sigma_v0, KD):
+            if ID < 1.2:
+                return 0.22 * sigma_v0 * (0.5 * KD) ** 1.25
+            else:
+                return 0
+
+        self.df['cu'] = self.df.apply(lambda x: undrained_shear_strenght(x['ID'],x['sigma_v0'], x['KD']), axis=1)
+
+        def friction_angle(ID, KD):
+            if ID > 1.2:
+                return 28 + 14.6 * np.log10(KD) - 2.1 * (np.log10(KD)) ** 2
+            else:
+                return 0
+
+        self.df['phi'] = self.df.apply(lambda x: friction_angle(x['ID'], x['KD']), axis=1)
+
+        def M_const_modulus(ID, KD, ED):
+            if KD <= 10:
+                if ID <= 0.6:
+                    RM = 0.14 + 2.36 * np.log10(KD)
+                    if RM >= 0.85:
+                        return ED * RM
+                    else:
+                        RM = 0.85
+                        return ED * RM
+                elif ID < 3.0:
+                    RM0 = 0.14 + 0.15 * (ID - 0.6)
+                    RM = RM0 + (2.5 - RM0) * np.log(KD)
+                    if RM >= 0.85:
+                        return ED * RM
+                    else:
+                        RM = 0.85
+                        return ED * RM
+                else:
+                    RM = 0.5 + 2.0 * np.log(KD)
+                    if RM >= 0.85:
+                        return RM * ED
+                    else:
+                        RM = 0.85
+                        return ED * RM
+            else:
+                RM = 0.32 + 2.18 * np.log10(KD)
+                return RM * ED
+
+        self.df['M'] = self.df.apply(lambda x: M_const_modulus(x['ID'], x['KD'], x['ED']), axis=1)
+
+    def sum(self, col):
+        print(self.df[col].sum(axis = 0))
+
+
 Niep = DMT('NiepDMT.csv')
 Niep.pokaz()
 Niep.interpretacja(0.1, 0.45, 0.5)
 
 Niep.pokaz()
+
+
+
