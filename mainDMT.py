@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 class DMT(object):
     'Klasa operująca na danych pomiarowych DMT'
@@ -11,7 +12,6 @@ class DMT(object):
         self.dB = dB
         self.wlvl = wlvl
         print('DataFrame "{}" został zaimportowany do klasy DMT\n'.format(plik))
-        print(self.df.columns, '\n')
 
     def pokaz(self, wiersze=10):
         print(self.df.head(wiersze), '\n')
@@ -159,12 +159,35 @@ class DMT(object):
 
         self.df['M'] = self.df.apply(lambda x: M_const_modulus(x['ID'], x['KD'], x['ED']), axis=1)
 
+        return self.df
+
     def sum(self, col):
         print(self.df[col].sum(axis = 0))
 
+    def eksport(self):
+        self.df.to_csv(path_or_buf='DMT_int_wynik.csv')
 
-Niep = DMT('NiepDMT.csv', 0.1, 0.45, 0.5)
-Niep.pokaz()
-Niep.interpretacja()
+    def wykres(self, k1, k2, k3):
+        ylim = (self.df['Depth (m)'].max(), self.df['Depth (m)'].min())
 
-Niep.pokaz()
+        f = plt.figure(figsize=(15, 10))
+        ax1 = f.add_subplot(131)
+        ax2 = f.add_subplot(132)
+        ax3 = f.add_subplot(133)
+
+        ax1.plot(self.df[k1], self.df['Depth (m)'], 'k-', linewidth=1.0)
+        ax1.set_ylim(ylim)
+        ax1.set(xlabel=k1, ylabel='Depth (m)')
+        ax1.grid(True)
+
+        ax2.plot(self.df[k2], self.df['Depth (m)'], 'k-', linewidth=1.0)
+        ax2.set_ylim(ylim)
+        ax2.set(xlabel=k2)
+        ax2.grid(True)
+
+        ax3.plot(self.df[k3], self.df['Depth (m)'], 'k-', linewidth=1.0)
+        ax3.set_ylim(ylim)
+        ax3.set(xlabel=k3)
+        ax3.grid(True)
+
+        plt.show()
